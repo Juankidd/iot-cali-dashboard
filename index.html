@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Dashboard IoT agrícola con simulación climática para Cali, Colombia." />
+  <title>AgroSense Cali · Dashboard IoT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">A</div>
+        <div>
+          <div class="brand-name">AgroSense</div>
+          <div class="brand-subtitle">Cali IoT Lab</div>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-item active" data-target="overview"><span>◫</span> Resumen</button>
+        <button class="nav-item" data-target="environment"><span>⌁</span> Ambiente</button>
+        <button class="nav-item" data-target="soil"><span>◉</span> Suelo</button>
+        <button class="nav-item" data-target="radiation"><span>☀</span> Radiación</button>
+        <button class="nav-item" data-target="map-section"><span>⌖</span> Mapa IoT</button>
+      </nav>
+
+      <div class="sidebar-card">
+        <div class="sidebar-card-title">Estado del nodo</div>
+        <div class="node-row"><span class="status-dot online"></span><span>Sensor Cali-01</span></div>
+        <div class="node-meta">Actualización cada 5 s</div>
+        <div class="node-meta">Zona horaria: America/Bogota</div>
+      </div>
+
+      <div class="sidebar-footer">Datos simulados · Demo académica</div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <div class="eyebrow">MONITOREO AGRÍCOLA EN TIEMPO REAL</div>
+          <h1>Dashboard IoT · Cali</h1>
+          <p class="subtitle">Sensores ambientales y de suelo con simulación dinámica según la hora del día.</p>
+        </div>
+        <div class="top-actions">
+          <div class="clock-card">
+            <span class="clock-label">Hora Cali</span>
+            <strong id="caliTime">--:--:--</strong>
+            <span id="caliDate">--</span>
+          </div>
+          <button id="pauseBtn" class="control-btn">Pausar</button>
+        </div>
+      </header>
+
+      <section class="hero-grid" id="overview">
+        <article class="hero-card hero-status">
+          <div class="hero-card-top">
+            <span class="hero-label">CONDICIÓN GENERAL</span>
+            <span id="overallBadge" class="badge good">Óptima</span>
+          </div>
+          <div class="hero-score-row">
+            <div>
+              <div id="healthScore" class="hero-score">92</div>
+              <div class="hero-score-label">Índice ambiental</div>
+            </div>
+            <div class="radial" id="radialGauge">
+              <div class="radial-inner">%</div>
+            </div>
+          </div>
+          <p id="overallMessage" class="hero-note">Las variables se mantienen en rangos favorables para un cultivo tropical.</p>
+        </article>
+
+        <article class="hero-card weather-card">
+          <div class="hero-card-top">
+            <span class="hero-label">PATRÓN DIURNO SIMULADO</span>
+            <span class="mini-chip">Cali</span>
+          </div>
+          <div class="weather-content">
+            <div class="weather-icon" id="weatherIcon">☀</div>
+            <div>
+              <div class="weather-temp"><span id="heroTemp">--</span>°C</div>
+              <div id="weatherText" class="weather-desc">Cálido y parcialmente despejado</div>
+            </div>
+          </div>
+          <div class="weather-bottom">
+            <span>🌡 Sensación <strong id="feelsLike">--°C</strong></span>
+            <span>💧 Humedad aire <strong id="airHumidity">--%</strong></span>
+          </div>
+        </article>
+      </section>
+
+      <section class="metrics-grid">
+        <article class="metric-card" data-metric="airTemp">
+          <div class="metric-head"><span class="metric-icon">🌡</span><span class="metric-status ok">Normal</span></div>
+          <div class="metric-title">Temperatura ambiente</div>
+          <div class="metric-value"><span id="airTemp">--</span><small>°C</small></div>
+          <div class="metric-foot"><span id="airTempTrend">↗ 0.0</span> vs. lectura anterior</div>
+        </article>
+
+        <article class="metric-card" data-metric="soilTemp">
+          <div class="metric-head"><span class="metric-icon">🌱</span><span class="metric-status ok">Estable</span></div>
+          <div class="metric-title">Temperatura del suelo</div>
+          <div class="metric-value"><span id="soilTemp">--</span><small>°C</small></div>
+          <div class="metric-foot"><span id="soilTempTrend">↗ 0.0</span> vs. lectura anterior</div>
+        </article>
+
+        <article class="metric-card" data-metric="soilMoisture">
+          <div class="metric-head"><span class="metric-icon">💧</span><span id="moistureStatus" class="metric-status ok">Adecuada</span></div>
+          <div class="metric-title">Humedad del suelo</div>
+          <div class="metric-value"><span id="soilMoisture">--</span><small>%</small></div>
+          <div class="metric-foot">Objetivo operativo: 45–75%</div>
+        </article>
+
+        <article class="metric-card" data-metric="ph">
+          <div class="metric-head"><span class="metric-icon">⚗</span><span id="phStatus" class="metric-status ok">Balanceado</span></div>
+          <div class="metric-title">pH del suelo</div>
+          <div class="metric-value"><span id="ph">--</span><small>pH</small></div>
+          <div class="metric-foot">Rango de referencia: 5.5–7.0</div>
+        </article>
+
+        <article class="metric-card" data-metric="radiation">
+          <div class="metric-head"><span class="metric-icon">☀</span><span id="radiationStatus" class="metric-status ok">Activa</span></div>
+          <div class="metric-title">Radiación solar</div>
+          <div class="metric-value"><span id="radiation">--</span><small>W/m²</small></div>
+          <div class="metric-foot"><span id="dayPhase">Fase diurna</span></div>
+        </article>
+      </section>
+
+      <section class="panel map-panel" id="map-section">
+        <div class="panel-header map-header">
+          <div>
+            <div class="panel-kicker">MONITOREO GEOESPACIAL</div>
+            <h2>Mapa de sensores IoT</h2>
+            <p class="map-subtitle">Selecciona Cali en el mapa para consultar la telemetría actual del nodo.</p>
+          </div>
+          <div class="map-selector-wrap">
+            <label for="citySelector">Ubicación</label>
+            <select id="citySelector" class="map-selector">
+              <option value="cali" selected>Cali, Valle del Cauca</option>
+            </select>
+          </div>
+        </div>
+        <div class="map-layout">
+          <div id="iotMap" class="iot-map" aria-label="Mapa IoT de Cali"></div>
+          <aside class="map-legend" id="mapLegend">
+            <div class="map-legend-head">
+              <div>
+                <span class="map-legend-kicker">NODO SELECCIONADO</span>
+                <h3>Cali · Sensor Cali-01</h3>
+              </div>
+              <span class="map-online"><i></i> Online</span>
+            </div>
+            <div class="map-coordinate">3.4516° N · 76.5320° O</div>
+            <div class="map-values">
+              <div><span>Temperatura ambiente</span><strong id="mapAirTemp">-- °C</strong></div>
+              <div><span>Temperatura suelo</span><strong id="mapSoilTemp">-- °C</strong></div>
+              <div><span>Humedad suelo</span><strong id="mapSoilMoisture">--%</strong></div>
+              <div><span>pH</span><strong id="mapPh">--</strong></div>
+              <div><span>Radiación</span><strong id="mapRadiation">-- W/m²</strong></div>
+              <div><span>Índice ambiental</span><strong id="mapHealth">--/100</strong></div>
+            </div>
+            <div class="map-legend-foot">Última lectura: <strong id="mapUpdated">--:--:--</strong></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="charts-grid" id="environment">
+        <article class="panel span-2">
+          <div class="panel-header">
+            <div><div class="panel-kicker">ÚLTIMAS 24 HORAS</div><h2>Temperatura ambiente y suelo</h2></div>
+            <div class="legend-pills"><span>● Ambiente</span><span>● Suelo</span></div>
+          </div>
+          <div class="chart-wrap"><canvas id="temperatureChart"></canvas></div>
+        </article>
+
+        <article class="panel" id="soil">
+          <div class="panel-header">
+            <div><div class="panel-kicker">SUELO</div><h2>Humedad y pH</h2></div>
+          </div>
+          <div class="chart-wrap compact"><canvas id="soilChart"></canvas></div>
+          <div class="soil-summary">
+            <div><span>Humedad media</span><strong id="avgMoisture">--%</strong></div>
+            <div><span>pH medio</span><strong id="avgPh">--</strong></div>
+          </div>
+        </article>
+
+        <article class="panel span-2" id="radiation">
+          <div class="panel-header">
+            <div><div class="panel-kicker">ENERGÍA SOLAR</div><h2>Radiación a lo largo del día</h2></div>
+            <span class="mini-chip" id="radiationPeak">Pico -- W/m²</span>
+          </div>
+          <div class="chart-wrap"><canvas id="radiationChart"></canvas></div>
+        </article>
+
+        <article class="panel insights-panel">
+          <div class="panel-header">
+            <div><div class="panel-kicker">ANÁLISIS</div><h2>Insights automáticos</h2></div>
+          </div>
+          <div id="insights" class="insights-list"></div>
+        </article>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-header">
+          <div><div class="panel-kicker">REGISTRO</div><h2>Lecturas recientes</h2></div>
+          <button id="downloadBtn" class="control-btn secondary">Exportar CSV</button>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>Hora</th><th>T. ambiente</th><th>T. suelo</th><th>Humedad suelo</th><th>pH</th><th>Radiación</th><th>Estado</th></tr>
+            </thead>
+            <tbody id="dataTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer>AgroSense Cali · Simulación IoT para visualización académica · <span id="footerYear"></span></footer>
+    </main>
+  </div>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="app.js"></script>
+</body>
+</html>
